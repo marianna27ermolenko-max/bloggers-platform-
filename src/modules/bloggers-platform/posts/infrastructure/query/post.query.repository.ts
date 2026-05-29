@@ -4,7 +4,8 @@ import { GetPostsQueryParams } from '../../api/input-dto/get-posts-query-params.
 import { PaginatedViewDto } from 'src/core/dto/base.paginated.view-dto';
 import { PostViewModel } from 'src/modules/bloggers-platform/posts/api/view-dto/post.view-dto';
 import { PostsFilter } from './type/filter.type';
-import { NotFoundException } from '@nestjs/common';
+import { DomainException } from 'src/core/exceptions/domain-exceptions';
+import { DomainExceptionCode } from 'src/core/exceptions/domain-exception-codes';
 
 export class PostsQwRepository {
   constructor(@InjectModel(Post.name) private PostModel: PostModelType) {}
@@ -38,7 +39,10 @@ export class PostsQwRepository {
   async getByIdOrNotFoundFail(id: string): Promise<PostViewModel> {
     const post = await this.PostModel.findOne({ _id: id });
     if (!post) {
-      throw new NotFoundException('post not found');
+      throw new DomainException({
+        code: DomainExceptionCode.NotFound,
+        message: 'post not found',
+      });
     }
     return PostViewModel.mapToView(post);
   }

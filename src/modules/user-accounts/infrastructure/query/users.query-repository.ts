@@ -1,11 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from '../../domain/user.entity';
 import type { UserModelType } from '../../domain/user.entity';
-import { UserViewDto } from '../../api/view-dto/users.view-dto';
+import { UserViewDtoAdmin } from '../../api/view-dto/users.view-dto';
 import { GetUsersQueryParams } from '../../api/input-dto/get-users-query-params.input-dto';
 import { PaginatedViewDto } from 'src/core/dto/base.paginated.view-dto';
 import { UsersFilter } from './type/filter.type';
+import { DomainException } from 'src/core/exceptions/domain-exceptions';
+import { DomainExceptionCode } from 'src/core/exceptions/domain-exception-codes';
 
 @Injectable()
 export class UsersQueryRepository {
@@ -13,7 +15,7 @@ export class UsersQueryRepository {
 
   async getAll(
     query: GetUsersQueryParams,
-  ): Promise<PaginatedViewDto<UserViewDto[]>> {
+  ): Promise<PaginatedViewDto<UserViewDtoAdmin[]>> {
     const filter: UsersFilter = {
       deletedAt: null,
     };
@@ -41,7 +43,7 @@ export class UsersQueryRepository {
 
     const totalCount = await this.UserModel.countDocuments(filter);
 
-    const items = users.map((user) => UserViewDto.mapToView(user));
+    const items = users.map((user) => UserViewDtoAdmin.mapToView(user));
 
     return PaginatedViewDto.mapToView({
       items,
@@ -51,11 +53,26 @@ export class UsersQueryRepository {
     });
   }
 
-  async getByIdOrNotFoundFail(id: string): Promise<UserViewDto> {
+  async getByIdOrNotFoundFail(id: string): Promise<UserViewDtoAdmin> {
     const user = await this.UserModel.findOne({ _id: id, deletedAt: null });
     if (!user) {
-      throw new NotFoundException('user not found');
+      throw new DomainException({
+        code: DomainExceptionCode.NotFound,
+        message: 'user not found',
+      });
     }
-    return UserViewDto.mapToView(user);
+    return UserViewDtoAdmin.mapToView(user);
+  }
+
+  async getMeInfo(userId: string): Promise<UserViewDtoAdmin> {
+    const user = await this.UserModel.findOne({ _id: userId, deletedAt: null });
+    if (!user) {
+      throw new DomainException({
+        code: DomainExceptionCode.Unauthorized,
+        message: 'user is unauthorized',
+      });
+    }
+
+    return UserViewDtoAdmin.mapToView(user);
   }
 }

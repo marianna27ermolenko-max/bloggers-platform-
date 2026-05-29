@@ -1,6 +1,6 @@
 import { InjectModel } from '@nestjs/mongoose';
 import { Post, type PostModelType } from '../domain/post.entity';
-import { PostInputDto } from '../api/input-dto/post.input-dto';
+import { PostInputModel } from '../api/input-dto/post.input-dto';
 import { BlogsRepository } from '../../blogs/infrastructure/blog.repository';
 import { PostsRepository } from '../infrastructure/post.repository';
 import { PostInputDtoByBlog } from '../../blogs/api/input-dto/post-ByBlog-input.dto';
@@ -14,7 +14,7 @@ export class PostsService {
     private blogsRepository: BlogsRepository,
   ) {}
 
-  async createPost(dto: PostInputDto): Promise<string> {
+  async createPost(dto: PostInputModel): Promise<string> {
     const blog = await this.blogsRepository.getByIdOrNotFoundFail(dto.blogId);
     const post = this.PostModel.createPost(dto, blog.name);
     await this.postsRepository.save(post);
@@ -42,7 +42,7 @@ export class PostsService {
     return post._id.toString();
   }
 
-  async updatePost(id: string, dto: PostInputDto) {
+  async updatePost(id: string, dto: PostInputModel) {
     const post = await this.postsRepository.getByIdOrNotFoundFail(id);
     post.updatePost(dto);
     await this.postsRepository.save(post);

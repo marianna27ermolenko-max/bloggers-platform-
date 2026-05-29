@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { CreateBlogDto } from '../dto/create.blog-dto';
+import { BlogInputModel } from '../dto/create.blog-dto';
 import { UpdateBlogDto } from '../dto/update.blog-dto';
 import { HydratedDocument, Model } from 'mongoose';
 
@@ -20,7 +20,7 @@ export class Blog {
   createdAt: Date;
   updatedAt: Date;
 
-  static createBlog(dto: CreateBlogDto): BlogDocument {
+  static createBlog(dto: BlogInputModel): BlogDocument {
     const blog = new this();
     blog.name = dto.name;
     blog.description = dto.description;

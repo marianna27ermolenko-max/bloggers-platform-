@@ -4,7 +4,7 @@ import {
   ExtendedLikesInfo,
   ExtendedLikesInfoSchema,
 } from './extendedLikesInfo.schema';
-import { PostInputDto } from '../api/input-dto/post.input-dto';
+import { PostInputModel } from '../api/input-dto/post.input-dto';
 
 @Schema({ timestamps: true })
 export class Post {
@@ -29,7 +29,7 @@ export class Post {
   createdAt: Date;
   updatedAt: Date;
 
-  static createPost(dto: PostInputDto, blogName: string) {
+  static createPost(dto: PostInputModel, blogName: string) {
     const post = new this();
     post.title = dto.title;
     post.shortDescription = dto.shortDescription;
@@ -45,7 +45,7 @@ export class Post {
     return post as PostDocument;
   }
 
-  updatePost(this: PostDocument, dto: PostInputDto) {
+  updatePost(this: PostDocument, dto: PostInputModel) {
     this.title = dto.title;
     this.content = dto.content;
     this.shortDescription = dto.shortDescription;

@@ -8,15 +8,22 @@ import {
   Param,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from '../application/user-service';
-import { UserViewDto } from './view-dto/users.view-dto';
+import { UserViewDtoAdmin } from './view-dto/users.view-dto';
 import { UsersQueryRepository } from '../infrastructure/query/users.query-repository';
 import { PaginatedViewDto } from 'src/core/dto/base.paginated.view-dto';
 import { CreateUserInputDto } from './input-dto/users.input-dto';
 import { GetUsersQueryParams } from './input-dto/get-users-query-params.input-dto';
+import { ApiBasicAuth, ApiBody, ApiParam, ApiTags } from '@nestjs/swagger';
+import { BasicAuthGuard } from '../guard/basic/basic-auth.guard';
+import { Public } from '../guard/decorators/public.decorator';
 
 @Controller('users')
+@UseGuards(BasicAuthGuard)
+@ApiBasicAuth('basicAuth')
+@ApiTags('users')
 export class UsersController {
   constructor(
     private usersQueryRepository: UsersQueryRepository,
@@ -25,24 +32,36 @@ export class UsersController {
     console.log('UsersController created');
   }
 
+  @Public()
+  @ApiParam({ name: 'id', type: 'string' })
   @Get(':id')
-  async getById(@Param('id') id: string): Promise<UserViewDto> {
+  async getById(@Param('id') id: string): Promise<UserViewDtoAdmin> {
     return this.usersQueryRepository.getByIdOrNotFoundFail(id);
   }
 
+  @Public()
   @Get()
   async getAll(
     @Query() query: GetUsersQueryParams,
-  ): Promise<PaginatedViewDto<UserViewDto[]>> {
+  ): Promise<PaginatedViewDto<UserViewDtoAdmin[]>> {
     return this.usersQueryRepository.getAll(query);
   }
 
+  @ApiBody({ description: 'Create new post', type: CreateUserInputDto })
   @Post()
-  async createUser(@Body() body: CreateUserInputDto): Promise<UserViewDto> {
+  async createUser(
+    @Body() body: CreateUserInputDto,
+  ): Promise<UserViewDtoAdmin> {
+    console.log('1. Controller entered');
+
     const userId = await this.usersService.createUser(body);
+
+    console.log('2. Controller finished');
+
     return this.usersQueryRepository.getByIdOrNotFoundFail(userId);
   }
 
+  @ApiParam({ name: 'id', type: 'string' })
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteUser(@Param('id') id: string): Promise<void> {

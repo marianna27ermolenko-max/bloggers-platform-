@@ -16,15 +16,21 @@ export class UsersService {
   ) {}
 
   async createUser(dto: CreateUserDto): Promise<string> {
+    console.log('3. Service start');
+
     const passwordHash = await this.bcryptService.generationHash(dto.password);
 
-    const user = this.UserModel.createInstance({
+    console.log('4. bcryptService start');
+
+    const user = this.UserModel.createInstanceAdmin({
       login: dto.login,
       email: dto.email,
       passwordHash,
     });
 
     await this.usersRepository.save(user);
+
+    console.log('5. repo start');
 
     return user._id.toString();
   }
