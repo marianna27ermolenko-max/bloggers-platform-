@@ -5,6 +5,7 @@ import {
   ExtendedLikesInfoSchema,
 } from './extendedLikesInfo.schema';
 import { PostInputModel } from '../api/input-dto/post.input-dto';
+import { LikeStatus } from '../../likes/domain/like.entity';
 
 @Schema({ timestamps: true })
 export class Post {
@@ -50,6 +51,54 @@ export class Post {
     this.content = dto.content;
     this.shortDescription = dto.shortDescription;
     this.blogId = dto.blogId;
+  }
+
+  addLike(this: PostDocument) {
+    this.extendedLikesInfo.likesCount += 1;
+  }
+
+  addDislike(this: PostDocument) {
+    this.extendedLikesInfo.dislikesCount += 1;
+  }
+
+  deleteDislike(this: PostDocument) {
+    this.extendedLikesInfo.dislikesCount = Math.max(
+      0,
+      this.extendedLikesInfo.dislikesCount - 1,
+    );
+  }
+
+  deleteLike(this: PostDocument) {
+    this.extendedLikesInfo.likesCount = Math.max(
+      0,
+      this.extendedLikesInfo.likesCount - 1,
+    );
+  }
+
+  countNewLike(this: PostDocument, likeStatus: LikeStatus) {
+    if (likeStatus === LikeStatus.Like) {
+      this.addLike();
+    } else if (likeStatus === LikeStatus.Dislike) {
+      this.addDislike();
+    }
+  }
+
+  updateCountLikes(
+    this: PostDocument,
+    newLike: LikeStatus,
+    oldLike: LikeStatus,
+  ) {
+    if (newLike === LikeStatus.Like && oldLike === LikeStatus.Dislike) {
+      this.addLike();
+      this.deleteDislike();
+    } else if (newLike === LikeStatus.Dislike && oldLike === LikeStatus.Like) {
+      this.addDislike();
+      this.deleteLike();
+    } else if (newLike === LikeStatus.None && oldLike === LikeStatus.Like) {
+      this.deleteLike();
+    } else if (newLike === LikeStatus.None && oldLike === LikeStatus.Dislike) {
+      this.deleteDislike();
+    }
   }
 }
 

@@ -1,19 +1,19 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { UsersRepository } from '../infrastructure/users.repository';
+import { UsersRepository } from '../../infrastructure/users.repository';
 import { JwtService } from '@nestjs/jwt';
-import { BcryptService } from '../services/bcrypt.service';
-import { CreateUserDto } from '../dto/create-user.dto';
-import { User, type UserModelType } from '../domain/user.entity';
+import { BcryptService } from './bcrypt.service';
+import { CreateUserDto } from '../../dto/create-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { EmailService } from 'src/modules/notifications/email.service';
-import { NewPasswordInputDto } from '../api/input-dto/new.passwort.input.dto';
-import { UserContextDto } from '../guard/dto/user-context.dto';
+import { NewPasswordInputDto } from '../../api/input-dto/new.passwort.input.dto';
+import { UserContextDto } from '../../guard/dto/user-context.dto';
 import {
   DomainException,
   Extension,
 } from 'src/core/exceptions/domain-exceptions';
 import { DomainExceptionCode } from 'src/core/exceptions/domain-exception-codes';
 import { add } from 'date-fns';
+import { User, type UserModelType } from '../../domain/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -99,12 +99,13 @@ export class AuthService {
       .catch(console.error);
   }
 
-  async login(userId: string): Promise<{ accessToken: string }> {
-    const accessToken = await this.jwtService.signAsync({
-      id: userId,
-    });
-    return { accessToken };
-  }
+  // async login(userId: string): Promise<{ accessToken: string }> {
+  //   const accessToken = await this.jwtService.signAsync({
+  //     id: userId,
+  //   });
+
+  //   return { accessToken };
+  // }
 
   async passwordRecovery(email: string): Promise<void> {
     const user = await this.usersRepository.findByLoginOrEmail(email);

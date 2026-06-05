@@ -1,22 +1,23 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from '../../domain/user.entity';
-import type { UserDocument, UserModelType } from '../../domain/user.entity';
+import type { UserModelType } from '../../domain/user.entity';
+import { UserViewDtoAdmin } from '../../api/view-dto/users.view-dto';
+import { DomainException } from 'src/core/exceptions/domain-exceptions';
+import { DomainExceptionCode } from 'src/core/exceptions/domain-exception-codes';
 
 @Injectable()
 export class UsersExternalQueryRepository {
   constructor(@InjectModel(User.name) private UserModel: UserModelType) {}
 
-  async getByOrNotFoundFail(id: string): Promise<UserDocument | null> {
-    const user = await this.UserModel.findOne({
-      _id: id,
-      deletedAt: null,
-    });
-
+  async getByIdOrNotFoundFail(id: string): Promise<UserViewDtoAdmin> {
+    const user = await this.UserModel.findOne({ _id: id, deletedAt: null });
     if (!user) {
-      throw new NotFoundException('user not found');
+      throw new DomainException({
+        code: DomainExceptionCode.NotFound,
+        message: 'user not found',
+      });
     }
-
-    return user; //потом добавим маппер
+    return UserViewDtoAdmin.mapToView(user);
   }
 }

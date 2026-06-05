@@ -5,9 +5,10 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Res,
   UseGuards,
 } from '@nestjs/common';
-import { AuthService } from '../application/auth.service';
+import { AuthService } from '../application/services/auth.service';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { ConfirmationDto } from './input-dto/confirmation.dto';
 import { EmailResendingInputDto } from './input-dto/auth.email.resending.input.dto';
@@ -22,12 +23,16 @@ import { UserContextDto } from '../guard/dto/user-context.dto';
 import { JwtAuthGuard } from '../guard/bearer/jwt-auth.guard';
 import { Throttle } from '@nestjs/throttler';
 import { LoginInputDto } from './input-dto/auth.input-dto';
+import { CommandBus } from '@nestjs/cqrs';
+import { LoginUserCommand } from '../application/usecases/login-user.usecase';
+import type { Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private authService: AuthService,
     private authQwRepository: AuthQwRepository,
+    private commandBus: CommandBus,
   ) {}
 
   @Post('registration')
@@ -57,8 +62,19 @@ export class AuthController {
   @ApiBody({ type: LoginInputDto })
   async login(
     @ExtractUserFromRequest() user: UserContextDto,
+    @Res({ passthrough: true }) response: Response,
   ): Promise<{ accessToken: string }> {
-    return this.authService.login(user.id);
+    const tokens = await this.commandBus.execute(
+      new LoginUserCommand({ userId: user.id }),
+    );
+    response.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+    });
+    return { accessToken: tokens.accessToken };
+
+    // return this.authService.login(user.id);
   }
 
   @Post('password-recovery')

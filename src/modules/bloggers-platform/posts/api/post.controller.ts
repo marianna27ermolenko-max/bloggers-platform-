@@ -11,18 +11,27 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { BlogsService } from '../../blogs/appllcation/blog.service';
 import { PostInputModel } from './input-dto/post.input-dto';
 import { PostsService } from '../appllcation/post.service';
 import { GetPostsQueryParams } from './input-dto/get-posts-query-params.input-dto';
 import { PostsQwRepository } from '../infrastructure/query/post.query.repository';
 import { PaginatedViewDto } from 'src/core/dto/base.paginated.view-dto';
-import { PostViewModel } from './view-dto/post.view-dto';
-import { UsersExternalQueryRepository } from 'src/modules/user-accounts/infrastructure/external-query/users.external-query-repository';
+import { PostViewModel } from '../appllcation/queries/view-dto/post.view-dto';
 import { ApiBasicAuth, ApiTags } from '@nestjs/swagger';
 import { BasicAuthGuard } from 'src/modules/user-accounts/guard/basic/basic-auth.guard';
 import { Public } from 'src/modules/user-accounts/guard/decorators/public.decorator';
 import { JwtOptionalAuthGuard } from 'src/modules/user-accounts/guard/bearer/jwt-optional-auth.guard';
+import { JwtAuthGuard } from 'src/modules/user-accounts/guard/bearer/jwt-auth.guard';
+import { ExtractUserFromRequest } from 'src/modules/user-accounts/guard/decorators/param/extract-user-from-request.decorator';
+import { UserContextDto } from 'src/modules/user-accounts/guard/dto/user-context.dto';
+import { LikeInputModel } from '../../comments/api/input-dto/comment.like.status-input.dto';
+import { CommandBus, QueryBus } from '@nestjs/cqrs';
+import { UpdateLikeStatusForPostCommand } from '../appllcation/usecases/update-likeStatus-forPost-useCase';
+import { CreateCommandByPostIdCommand } from '../appllcation/usecases/create.comment-byPostId- useCases';
+import { CommentInputDto } from '../../comments/api/input-dto/comment.input-dto';
+import { CommentViewModel } from '../../comments/appllcation/queries/view-dto/comment.view-dto';
+import { ExtractUserIfExistsFromRequest } from 'src/modules/user-accounts/guard/decorators/param/extract-user-if-exists-from-request.decorator';
+import { GetCommentByPostIdQuery } from '../appllcation/queries/get-comment-byPostId-query';
 
 @Controller('posts')
 @UseGuards(BasicAuthGuard)
@@ -30,9 +39,9 @@ import { JwtOptionalAuthGuard } from 'src/modules/user-accounts/guard/bearer/jwt
 @ApiTags('posts')
 export class PostsController {
   constructor(
+    private commandBus: CommandBus,
+    private queryBus: QueryBus,
     private postsService: PostsService,
-    private blogsService: BlogsService,
-    private usersQueryRepository: UsersExternalQueryRepository,
     private postsQwRepository: PostsQwRepository,
   ) {}
 
@@ -41,20 +50,47 @@ export class PostsController {
   @Get()
   async getAll(
     @Query() query: GetPostsQueryParams,
+    @ExtractUserIfExistsFromRequest() user: UserContextDto | null,
   ): Promise<PaginatedViewDto<PostViewModel[]>> {
-    return this.postsQwRepository.getAll(query);
+    return this.postsQwRepository.getAll(query, user?.id || null);
   }
 
   @Public()
   @UseGuards(JwtOptionalAuthGuard)
   @Get(':id')
-  async getPost(@Param('id') id: string): Promise<PostViewModel> {
-    return this.postsQwRepository.getByIdOrNotFoundFail(id);
+  async getPost(
+    @Param('id') id: string,
+    @ExtractUserIfExistsFromRequest() user: UserContextDto | null,
+  ): Promise<PostViewModel> {
+    return this.postsQwRepository.getByIdOrNotFoundFail(id, user?.id || null);
   }
 
-  // @Get(':id/comments')
-  // @UseGuards(JwtOptionalAuthGuard)
-  // async getComment(@Param('postId') postId: string): Promise<> {}
+  @Get(':postId/comments')
+  @Public()
+  @UseGuards(JwtOptionalAuthGuard)
+  async getComments(
+    @Param('postId') postId: string,
+    @ExtractUserIfExistsFromRequest() user: UserContextDto | null,
+    @Query() query: GetPostsQueryParams,
+  ): Promise<PaginatedViewDto<CommentViewModel[]>> {
+    return this.queryBus.execute(
+      new GetCommentByPostIdQuery(postId, user?.id || null, query),
+    );
+  }
+
+  @Post(':postId/comments')
+  @Public()
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  async postCommentByPostId(
+    @Param('postId') postId: string,
+    @Body() body: CommentInputDto,
+    @ExtractUserFromRequest() user: UserContextDto,
+  ): Promise<CommentViewModel> {
+    return this.commandBus.execute(
+      new CreateCommandByPostIdCommand(postId, user.id, body),
+    );
+  }
 
   @Post()
   async createPost(@Body() body: PostInputModel): Promise<PostViewModel> {
@@ -69,6 +105,20 @@ export class PostsController {
     @Body() body: PostInputModel,
   ): Promise<void> {
     await this.postsService.updatePost(id, body);
+  }
+
+  @Put(':postId/like-status')
+  @Public()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(JwtAuthGuard)
+  async updateLikeStatusForPost(
+    @Param('postId') postId: string,
+    @ExtractUserFromRequest() user: UserContextDto,
+    @Body() body: LikeInputModel,
+  ): Promise<void> {
+    await this.commandBus.execute(
+      new UpdateLikeStatusForPostCommand(postId, user.id, body.likeStatus),
+    );
   }
 
   @Delete(':id')

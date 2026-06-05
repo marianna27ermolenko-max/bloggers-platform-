@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsString, Length } from 'class-validator';
+import { IsNotEmpty, IsString, IsUrl, Length } from 'class-validator';
 import { Trim } from 'src/core/decorators/trim';
 
 export class UpdateBlogDto {
@@ -22,6 +22,6 @@ export class UpdateBlogDto {
   @IsNotEmpty()
   @IsString()
   @Length(1, 100)
-  @IsEmail()
+  @IsUrl()
   websiteUrl: string;
 }

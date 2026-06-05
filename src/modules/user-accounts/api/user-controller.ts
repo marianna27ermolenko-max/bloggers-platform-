@@ -10,7 +10,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { UsersService } from '../application/user-service';
+import { UsersService } from '../application/services/user-service';
 import { UserViewDtoAdmin } from './view-dto/users.view-dto';
 import { UsersQueryRepository } from '../infrastructure/query/users.query-repository';
 import { PaginatedViewDto } from 'src/core/dto/base.paginated.view-dto';
@@ -19,6 +19,7 @@ import { GetUsersQueryParams } from './input-dto/get-users-query-params.input-dt
 import { ApiBasicAuth, ApiBody, ApiParam, ApiTags } from '@nestjs/swagger';
 import { BasicAuthGuard } from '../guard/basic/basic-auth.guard';
 import { Public } from '../guard/decorators/public.decorator';
+import { CommandBus } from '@nestjs/cqrs';
 
 @Controller('users')
 @UseGuards(BasicAuthGuard)
@@ -26,6 +27,7 @@ import { Public } from '../guard/decorators/public.decorator';
 @ApiTags('users')
 export class UsersController {
   constructor(
+    private commandBus: CommandBus,
     private usersQueryRepository: UsersQueryRepository,
     private usersService: UsersService,
   ) {
@@ -52,12 +54,7 @@ export class UsersController {
   async createUser(
     @Body() body: CreateUserInputDto,
   ): Promise<UserViewDtoAdmin> {
-    console.log('1. Controller entered');
-
     const userId = await this.usersService.createUser(body);
-
-    console.log('2. Controller finished');
-
     return this.usersQueryRepository.getByIdOrNotFoundFail(userId);
   }
 

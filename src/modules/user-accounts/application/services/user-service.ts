@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { User } from '../domain/user.entity';
-import type { UserModelType } from '../domain/user.entity';
-import { UsersRepository } from '../infrastructure/users.repository';
-import { CreateUserDto, UpdateUserDto } from '../dto/create-user.dto';
-import { BcryptService } from '../services/bcrypt.service';
+import { User } from '../../domain/user.entity';
+import type { UserModelType } from '../../domain/user.entity';
+import { UsersRepository } from '../../infrastructure/users.repository';
+
+import { BcryptService } from './bcrypt.service';
+import { CreateUserDto } from '../../dto/create-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -16,11 +17,7 @@ export class UsersService {
   ) {}
 
   async createUser(dto: CreateUserDto): Promise<string> {
-    console.log('3. Service start');
-
     const passwordHash = await this.bcryptService.generationHash(dto.password);
-
-    console.log('4. bcryptService start');
 
     const user = this.UserModel.createInstanceAdmin({
       login: dto.login,
@@ -30,19 +27,17 @@ export class UsersService {
 
     await this.usersRepository.save(user);
 
-    console.log('5. repo start');
-
     return user._id.toString();
   }
 
-  async updateUser(id: string, dto: UpdateUserDto): Promise<string> {
-    const user = await this.usersRepository.findOrNotFoundFail(id);
+  // async updateUser(id: string, dto: UpdateUserDto): Promise<string> {
+  //   const user = await this.usersRepository.findOrNotFoundFail(id);
 
-    user.update(dto);
-    await this.usersRepository.save(user);
+  //   user.update(dto);
+  //   await this.usersRepository.save(user);
 
-    return user._id.toString();
-  }
+  //   return user._id.toString();
+  // }
 
   async deleteUser(id: string): Promise<void> {
     const user = await this.usersRepository.findOrNotFoundFail(id);

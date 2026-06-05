@@ -1,3 +1,4 @@
+import { LikeStatus } from 'src/modules/bloggers-platform/likes/domain/like.entity';
 import { PostDocument } from 'src/modules/bloggers-platform/posts/domain/post.entity';
 
 export class PostViewModel {
@@ -12,7 +13,7 @@ export class PostViewModel {
   extendedLikesInfo: {
     likesCount: number;
     dislikesCount: number;
-    myStatus: string;
+    myStatus: LikeStatus;
     newestLikes: {
       addedAt: string;
       userId: string;
@@ -20,7 +21,15 @@ export class PostViewModel {
     }[];
   };
 
-  static mapToView(post: PostDocument): PostViewModel {
+  static mapToView(
+    post: PostDocument,
+    myStatus: LikeStatus = LikeStatus.None,
+    newestLikes: {
+      addedAt: string;
+      userId: string;
+      login: string;
+    }[] = [],
+  ): PostViewModel {
     const viewModel = new PostViewModel();
 
     viewModel.id = post._id.toString();
@@ -35,9 +44,8 @@ export class PostViewModel {
       likesCount: post.extendedLikesInfo.likesCount,
       dislikesCount: post.extendedLikesInfo.dislikesCount,
 
-      // пока заглушки
-      myStatus: 'None',
-      newestLikes: [],
+      myStatus,
+      newestLikes,
     };
 
     return viewModel;
